@@ -9,6 +9,8 @@ import (
 	"plugin"
 	"strings"
 	"time"
+
+	"github.com/andrestc/go-plugserver/plughttp"
 )
 
 type fileEntry struct {
@@ -20,13 +22,13 @@ var fileIndex map[string]fileEntry
 
 func main() {
 	fileIndex = make(map[string]fileEntry)
-	mux := NewServeMux()
+	mux := plughttp.NewServeMux()
 	log.Println("Starting server on port :8080")
 	go watchHandlers(mux, "./handlers")
 	http.ListenAndServe(":8080", mux)
 }
 
-func watchHandlers(mux *ServeMux, pluginsDir string) {
+func watchHandlers(mux *plughttp.ServeMux, pluginsDir string) {
 	loadHandlers(mux, pluginsDir)
 	for {
 		select {
@@ -39,7 +41,7 @@ func watchHandlers(mux *ServeMux, pluginsDir string) {
 	}
 }
 
-func loadHandlers(mux *ServeMux, pluginsDir string) {
+func loadHandlers(mux *plughttp.ServeMux, pluginsDir string) {
 	dir, err := os.Open(pluginsDir)
 	if err != nil {
 		panic(fmt.Sprintf("unable to open plugins dir: %s", err))
@@ -80,7 +82,7 @@ func loadHandlers(mux *ServeMux, pluginsDir string) {
 	}
 }
 
-func removeOldHandlers(mux *ServeMux, pluginsDir string) {
+func removeOldHandlers(mux *plughttp.ServeMux, pluginsDir string) {
 	checkedMap := make(map[string]bool)
 	dir, err := os.Open(pluginsDir)
 	if err != nil {
