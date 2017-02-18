@@ -19,6 +19,7 @@ func main() {
 }
 
 func watchHandlers(mux *ServeMux, pluginsDir string) {
+	loadHandlers(mux, pluginsDir)
 	for {
 		select {
 		case <-time.After(5 * time.Second):
