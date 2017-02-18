@@ -123,9 +123,9 @@ func (mux *ServeMux) Handle(pattern string, handler http.Handler) {
 	if handler == nil {
 		panic("http: nil handler")
 	}
-	// if mux.m[pattern].explicit {
-	// 	panic("http: multiple registrations for " + pattern)
-	// }
+	if mux.m[pattern].explicit {
+		panic("http: multiple registrations for " + pattern)
+	}
 
 	if mux.m == nil {
 		mux.m = make(map[string]muxEntry)
