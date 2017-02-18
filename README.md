@@ -1,8 +1,8 @@
-This is a toy project to test the go 1.8 plugins feature (which only works on linux at the moment). Work in progress!
-
 # Motivation
 
-The main motivation of the project is to try out [go plugins](https://golang.org/pkg/plugin/) building something that might, some day, become useful (or not, its ok).
+This is a toy project to test the go 1.8 plugins feature (which only works on linux at the moment). Work in progress!
+
+The main motivation of the project is to try out [go plugins](https://golang.org/pkg/plugin/) building something that might, some day, become useful (or not, its ok). 
 
 # General Idea
 
@@ -11,7 +11,7 @@ The main motivation of the project is to try out [go plugins](https://golang.org
 1. A `string`, the handler pattern url, e.g, `/users/`.
 2. A `func(w http.ResponseWriter, r *http.Request))` that is the handler function to be added to the server and will handle requests for that pattern
 
-If a file is removed from the `handlers` directory, the registered pattern for that file will also be removed from the server.
+If a file is removed from the `handlers` directory, the registered pattern for that file will also be removed from the server. **Without any downtime (needs to be confirmed by trusted sources :-))!**
 
 # Using
 
