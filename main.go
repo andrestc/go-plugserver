@@ -8,13 +8,25 @@ import (
 	"path/filepath"
 	"plugin"
 	"strings"
+	"time"
 )
 
 func main() {
 	mux := NewServeMux()
 	log.Println("Starting server on port :8080")
-	go loadHandlers(mux, "./handlers")
+	go watchHandlers(mux, "./handlers")
 	http.ListenAndServe(":8080", mux)
+}
+
+func watchHandlers(mux *ServeMux, pluginsDir string) {
+	for {
+		select {
+		case <-time.After(5 * time.Second):
+			log.Println("Refreshing handlers...")
+			loadHandlers(mux, pluginsDir)
+			log.Println("Done refreshing handlers...")
+		}
+	}
 }
 
 func loadHandlers(mux *ServeMux, pluginsDir string) {
@@ -38,8 +50,15 @@ func loadHandlers(mux *ServeMux, pluginsDir string) {
 		handler, err := p.Lookup("Handler")
 		if err != nil {
 			log.Printf("failed to lookup handler in plugin %s: %s", f.Name(), err)
+			continue
 		}
-		pattern, handleFunc := handler.(func() (string, func(w http.ResponseWriter, r *http.Request)))()
+		fun, ok := handler.(func() (string, func(w http.ResponseWriter, r *http.Request)))
+		if !ok {
+			log.Printf("invalid Handler function on plugin %q, has type %T", f.Name(), handler)
+			continue
+		}
+		pattern, handleFunc := fun()
+		log.Printf("Registering handler for pattern %q from file %q", pattern, f.Name())
 		mux.HandleFunc(pattern, handleFunc)
 	}
 }
