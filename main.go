@@ -11,7 +11,15 @@ import (
 	"time"
 )
 
+type fileEntry struct {
+	pattern string
+	modTime time.Time
+}
+
+var fileIndex map[string]fileEntry
+
 func main() {
+	fileIndex = make(map[string]fileEntry)
 	mux := NewServeMux()
 	log.Println("Starting server on port :8080")
 	go watchHandlers(mux, "./handlers")
@@ -25,6 +33,7 @@ func watchHandlers(mux *ServeMux, pluginsDir string) {
 		case <-time.After(5 * time.Second):
 			log.Println("Refreshing handlers...")
 			loadHandlers(mux, pluginsDir)
+			removeOldHandlers(mux, pluginsDir)
 			log.Println("Done refreshing handlers...")
 		}
 	}
@@ -42,6 +51,12 @@ func loadHandlers(mux *ServeMux, pluginsDir string) {
 	for _, f := range files {
 		if !strings.HasSuffix(f.Name(), ".so") {
 			continue
+		}
+		if old, ok := fileIndex[f.Name()]; ok {
+			if !f.ModTime().After(old.modTime) {
+				log.Printf("Skipping %q. Already scanned.", f.Name())
+				continue
+			}
 		}
 		p, err := plugin.Open(filepath.Join(dir.Name(), f.Name()))
 		if err != nil {
@@ -61,5 +76,28 @@ func loadHandlers(mux *ServeMux, pluginsDir string) {
 		pattern, handleFunc := fun()
 		log.Printf("Registering handler for pattern %q from file %q", pattern, f.Name())
 		mux.HandleFunc(pattern, handleFunc)
+		fileIndex[f.Name()] = fileEntry{pattern: pattern, modTime: f.ModTime()}
+	}
+}
+
+func removeOldHandlers(mux *ServeMux, pluginsDir string) {
+	checkedMap := make(map[string]bool)
+	dir, err := os.Open(pluginsDir)
+	if err != nil {
+		panic(fmt.Sprintf("unable to open plugins dir: %s", err))
+	}
+	files, err := dir.Readdir(0)
+	if err != nil {
+		log.Printf("failed to read plugins dir content: %s", err)
+	}
+	for _, f := range files {
+		checkedMap[f.Name()] = true
+	}
+	for k, v := range fileIndex {
+		if !checkedMap[k] {
+			log.Printf("Removing pattern %q previously added from file %q", v.pattern, k)
+			mux.DeRegister(v.pattern)
+			delete(fileIndex, k)
+		}
 	}
 }
